@@ -26,7 +26,17 @@ def negativeAlpha(alpha):
         return [(f"-{alpha}")]
     else:
         return [alpha.replace('-','')]
-    
+
+def isUseless(src):
+    for literal in src:
+        if '-' in literal and literal.replace("-", "") in src:
+                src.remove(literal)
+                src.remove(literal.replace("-", ""))
+        else:
+            if f'-{literal}' in src:
+                src.remove(literal)
+                src.remove(f'-{literal}')
+                
 def resolve(ci, cj):
     resolvents = []
     for literal in ci:
@@ -35,29 +45,32 @@ def resolve(ci, cj):
                 resolvent = sorted(set(ci) | set(cj))
                 resolvent.remove(literal)
                 resolvent.remove(literal.replace("-", ""))
-                resolvents.append(
-                    (resolvent))
+                isUseless(resolvent)
+                resolvents.append((resolvent))
         else:
             if f'-{literal}' in cj:
                 resolvent = sorted(set(ci) | set(cj))
                 resolvent.remove(literal)
                 resolvent.remove(f'-{literal}')
+                isUseless(resolvent)
                 resolvents.append((resolvent))
 
     return resolvents
 
-def is_sample(src, check:list):
+def isSample(src, new, buffer):
     i=0
-    while i < len(check):
-        if check[i] in src:
-            check.remove(check[i])
+    while i < len(new):
+        if new[i] in src:
+            new.remove(new[i])
         else:
+            addClause(src,buffer,new[i])
             i=i+1
     
-    return check
-            
-        
-        
+         
+def addClause(src,buffer,clause):
+        buffer.append(clause)
+        src.append(clause)
+         
 
 def PL_resolution(kb, alpha,fileNumber):
     KB = kb + negativeAlpha(alpha)
@@ -76,14 +89,11 @@ def PL_resolution(kb, alpha,fileNumber):
                 #return True
             if len(resolvent) != 0:
                 new_clauses.extend(resolvent)
-                
-
-        if len(is_sample(clauses,new_clauses)) == 0:
+        isSample(clauses,new_clauses,buffer)
+        if len(new_clauses) == 0:
             result = False
             return result,buffer
 
-        buffer.extend(new_clauses)
-        clauses.extend(new_clauses)
         writefile(f"output{fileNumber}.txt",buffer)
         buffer.clear()
 
