@@ -1,12 +1,7 @@
 4
 -R OR Q
 P OR R
--Q OR -P
+-P OR -Q
 -Q
-4
-P
--R OR R
-P OR -P
--Q OR Q
 {}
 YES

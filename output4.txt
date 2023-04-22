@@ -1,16 +1,16 @@
 6
--C
-C OR -A
--C OR D
--B OR -A
-B
+-A OR C
 B OR D
+B
+-A OR -B
+-C OR D
+-C
 6
--B
--B OR D
-C
 -A
--A OR D
 C OR D
+C
+-B OR D
+-B
+-A OR D
 {}
 YES
