@@ -1,3 +1,4 @@
+# Read input from file input
 def readfile(filename):
     with open(filename, "r") as file:
         alpha = file.readline().strip()
@@ -6,65 +7,102 @@ def readfile(filename):
         for i in range(number):
             kb.append(file.readline().strip())
 
-    file.close()
     return alpha, kb
 
-def writefile(filename, buffer, number):
-    
-    with open(filename,"a") as file:
-        file.write(str(number)+"\n")
+# Write buffer to file output
+def writefile(filename, buffer):
+    with open(filename, "a") as file:
+        file.write(str(len(buffer))+"\n")
         for i in list(buffer):
             formatted_content = ' OR '.join(
                 [elem if elem.startswith('-') else f"{elem}" for elem in i])
             file.writelines(str(formatted_content)+'\n')
-         
 
+# Negative of alpha for adding to KB
+def negativeAlpha(alpha):
+    new = []
+    if 'OR' in alpha:
+        clauses = alpha.split(' OR ')
+        for clause in clauses:
+            if '-' not in clause:
+                new.append([(f"-{clause}")])
+            else:
+                new.append([clause.replace('-', '')])
+    else:
+        if '-' not in alpha:
+            new.append([(f"-{alpha}")])
+        else:
+            new.append([alpha.replace('-', '')])
+    return new
+
+# Checking the result that is useless.
+# Ex: (-A OR A OR C) -> (C)
+def isUseless(src):
+    for literal in src:
+        if '-' in literal and literal.replace("-", "") in src:
+            src.remove(literal)
+            src.remove(literal.replace("-", ""))
+        else:
+            if f'-{literal}' in src:
+                src.remove(literal)
+                src.remove(f'-{literal}')
+
+# checks if a clause is a sample of another clause and removes it if it is
+def isSample(src, new, buffer):
+    i = 0
+    while i < len(new):
+        if new[i] in src:
+            new.remove(new[i])
+        else:
+            addClause(src, buffer, new[i])
+            i = i+1
+
+# add a clause to the buffer
+def addClause(src, buffer, clause):
+    buffer.append(clause)
+    src.append(clause)
 def resolve(ci, cj):
     resolvents = []
-
     for literal in ci:
         if '-' in literal:
             if literal.replace("-", "") in cj:
                 resolvent = sorted(set(ci) | set(cj))
                 resolvent.remove(literal)
                 resolvent.remove(literal.replace("-", ""))
-                resolvents.append(frozenset(resolvent))
+                isUseless(resolvent)
+                resolvents.append((resolvent))
         else:
             if f'-{literal}' in cj:
                 resolvent = sorted(set(ci) | set(cj))
                 resolvent.remove(literal)
                 resolvent.remove(f'-{literal}')
-                resolvents.append(frozenset(resolvent))
+                isUseless(resolvent)
+                resolvents.append((resolvent))
+
     return resolvents
 
-
-def PL_resolution(kb, alpha, file_num):
-    KB = kb + [('-'+alpha)]
-    clauses = [frozenset(clause.split(' OR ')) for clause in KB]
-    result = False
+# function that solve problem Entailing
+def PL_resolution(kb, alpha, fileNumber):
+    clauses = ([(clause.split(' OR ')) for clause in kb])
+    clauses.extend(negativeAlpha(alpha))
+    buffer = list()
     while True:
-        new_clauses = set()
+        new_clauses = []
         pairs = [(clauses[i], clauses[j])
                  for i in range(len(clauses)) for j in range(i + 1, len(clauses))]
         for (ci, cj) in pairs:
             resolvent = resolve(ci, cj)
-            if not resolvent:
-                result = True
-                break
-                #return True
-            new_clauses=new_clauses.union(set(resolvent))
-        if new_clauses.issubset(set(clauses)):
-            
-            return False
-        number = 0
-        buffer = []
-        for clause in new_clauses:
-            if clause not in clauses:
-                number+=1
-                buffer.append(clause)
-                clauses.append(clause)
-        writefile(f"output{file_num}.txt", buffer, number)
+            for i in resolvent:
+                if not i:
+                    return True, buffer
+            if len(resolvent) != 0:
+                new_clauses.extend(resolvent)
+        isSample(clauses, new_clauses, buffer)
+        if len(new_clauses) == 0:
+            return False, buffer
 
+        writefile(f"output{fileNumber}.txt", buffer)
+        buffer.clear()
 
 
 def main():
@@ -73,17 +111,16 @@ def main():
         with open(f"output{i}.txt", "w") as file:
             file.write("")
             file.close()
-        result = PL_resolution(kb, alpha, i)
+        result, buffer = PL_resolution(kb, alpha, i)
         with open(f"output{i}.txt", "a") as file:
             if result:
                 print("YES")
-                file.write("YES")
+                file.write("{}\nYES")
 
             else:
                 print("NO")
-                file.write("NO")
+                file.write(f"{len(buffer)}\nNO")
 
-        # file.close()
     return 0
 
 
